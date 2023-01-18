@@ -1,16 +1,10 @@
 # ds-aws-utils package
 
-- [ ] get aws creds from profile
-- [ ] dynamodb utils
-- [ ] cognito utils
-
 ## dynamodb
 
 ### Type check methods (for single table pattern)
 
 - Use the same object structure as in `aws-sdk`
-
-Example
 
 ```ts
 export type UserState = 'New' | 'Register'
@@ -41,7 +35,7 @@ const newItem = await updateItem<UserData>({
 })
 ```
 
-### One liners
+### One liners 
 
 This is meant to be used for quick scripting. For maintainable codes, should still use Type Check methods
 
