@@ -2,18 +2,36 @@ import AWS from "aws-sdk";
 
 export class DynamoDBUtils {
   /** @type {import('aws-sdk/clients/dynamodb').DocumentClient}*/
-  #db;
+  db;
   constructor({region, credentials}) {
-    this.#db = new AWS.DynamoDB.DocumentClient({
+    this.db = new AWS.DynamoDB.DocumentClient({
       region, credentials: credentials
     });
+  }
+
+  async getItem(table, pk, sk) {
+    const r = await this.db.get({
+      TableName: table,
+      Key: {
+        PK: pk,
+        SK: sk
+      }
+    }).promise()
+    return r.Item;
+  }
+
+  async putItem(table, item) {
+    const r = await this.db.put({
+      TableName: table,
+      Item: item,
+    }).promise()
   }
 
   async query(table, index, expression, pk, sk, pages = 1, forward = true) {
     const ans = [];
     let next;
     for (let i = 0 ; i < pages; i++){
-      const r = await this.#db.query({
+      const r = await this.db.query({
         TableName: table,
         IndexName: index,
         ScanIndexForward: forward,
