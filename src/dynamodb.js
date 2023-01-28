@@ -27,10 +27,12 @@ export class DynamoDBUtils {
     }).promise()
   }
 
-  async query(table, index, expression, pk, sk, pages = 1, forward = true) {
+  async query(table, index, expression, pk, sk, pages = 1, forward = true, options) {
+    const { FilterExpression, Limit } = options ?? {};
     const ans = [];
     let next;
-    for (let i = 0 ; i < pages; i++){
+    let i = 0
+    for (; i < pages; i++){
       const r = await this.db.query({
         TableName: table,
         IndexName: index,
@@ -49,12 +51,13 @@ export class DynamoDBUtils {
             throw `Unhandled value key ${key}`
           }
         })),
+        FilterExpression, Limit,
       }).promise();
       ans.push(...r.Items);
       next = r.LastEvaluatedKey;
       if (!next) break;
     }
 
-    return ans;
+    return [ans, i + 1];
   }
 }
