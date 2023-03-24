@@ -1,4 +1,4 @@
-import {Credentials } from 'aws-sdk'
+import {Credentials, DynamoDB} from 'aws-sdk'
 import {DocumentClient} from "aws-sdk/clients/dynamodb";
 
 export class DynamoDBUtils {
@@ -24,6 +24,8 @@ export class DynamoDBUtils {
   getItem(table: string, pk: string, sk: string): Promise<object>;
 
   putItem(table: string, item: object): Promise<void>;
+
+  createBackup(table: string, backupName: string): Promise<DynamoDB.Types.CreateBackupOutput>;
 
   db: DocumentClient;
 }
