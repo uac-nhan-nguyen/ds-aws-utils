@@ -1,23 +1,20 @@
 {
   "compilerOptions": {
-    "incremental": true,
-    "target": "es2020",
     "module": "commonjs",
     "declaration": true,
-    "outDir": "lib",
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    "strictNullChecks": true,
-    "forceConsistentCasingInFileNames": true,
-    "allowSyntheticDefaultImports": true,
-    "allowJs": true,
-
     "removeComments": true,
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
+    "allowSyntheticDefaultImports": true,
+    "allowJs": true,
+    "target": "es2020",
     "sourceMap": true,
+    "outDir": "dist",
     "resolveJsonModule": true,
+    "strictNullChecks": true,
+    "esModuleInterop": true,
     "moduleResolution": "node",
     "baseUrl": ".",
+    "skipLibCheck": true
   }
 }

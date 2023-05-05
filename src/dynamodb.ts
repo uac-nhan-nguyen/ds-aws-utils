@@ -1,7 +1,8 @@
 import {Credentials, DynamoDB} from "aws-sdk";
+import {DocumentClient} from 'aws-sdk/clients/dynamodb'
 
 export class DynamoDBUtils {
-  db: DynamoDB.DocumentClient;
+  db: DocumentClient;
 
   dynamoDB: DynamoDB;
 
@@ -25,7 +26,7 @@ export class DynamoDBUtils {
     return r.Item ?? null;
   }
 
-  async putItem(table: string, item: object): Promise<void> {
+  async putItem(table: string, item: {[key: string]: DocumentClient.AttributeValue}): Promise<void> {
     const r = await this.db.put({
       TableName: table,
       Item: item,
@@ -38,11 +39,11 @@ export class DynamoDBUtils {
   }): Promise<[object[], number]> {
     const {FilterExpression, Limit, verbose} = props ?? {};
     const ans = [];
-    let next: string | undefined;
+    let next: DocumentClient.Key | undefined;
     let i = 0
     for (; i < pages; i++) {
-      const params: DynamoDB.DocumentClient.QueryInput = {
-        TableName: 1,
+      const params: DocumentClient.QueryInput = {
+        TableName: table,
         IndexName: index,
         ScanIndexForward: forward,
         KeyConditionExpression: expression,
