@@ -33,12 +33,12 @@ export class DynamoDBUtils {
     }).promise()
   }
 
-  async query(table: string, index: string | null, expression: string, pk: string, sk?: string, pages?: number, forward?: boolean, props?: {
+  async query<T>(table: string, index: string | null, expression: string, pk: string, sk?: string, pages?: number, forward?: boolean, props?: {
     FilterExpression?: string,
     Limit?: number,
-  }): Promise<[object[], number]> {
+  }): Promise<[T[], number]> {
     const {FilterExpression, Limit, verbose} = props ?? {};
-    const ans = [];
+    const ans : DocumentClient.AttributeMap[] = [];
     let next: DocumentClient.Key | undefined;
     let i = 0
     for (; i < pages; i++) {
@@ -68,14 +68,14 @@ export class DynamoDBUtils {
       }
       if (verbose) console.log(params)
       const r = await this.db.query(params).promise();
-      ans.push(...r.Items);
+      ans.push(...r.Items ?? []);
       next = r.LastEvaluatedKey;
       if (!next) {
-        return [ans, i + 1];
+        return [ans as T[], i + 1];
       }
     }
 
-    return [ans, i];
+    return [ans as T[], i];
   }
 
   async createBackup(table: string, backupName: string): Promise<DynamoDB.Types.CreateBackupOutput> {
