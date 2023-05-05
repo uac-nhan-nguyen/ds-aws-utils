@@ -1,11 +1,11 @@
-import AWS from 'aws-sdk';
+import AWS, {Credentials} from 'aws-sdk'
 import fs from "fs";
 import os from "os";
 
 /**
  * Returns undefined for aws client to use default profile
  */
-export const getCredentialsFromProfile = (profile) => {
+export const getCredentialsFromProfile = (profile: string): Credentials | undefined => {
   if (profile == null) return undefined;
 
   const file = Buffer.from(fs.readFileSync(`${os.homedir()}/.aws/credentials`)).toString('utf-8');
