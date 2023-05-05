@@ -15,7 +15,7 @@ export class DynamoDBUtils {
     })
   }
 
-  async getItem(table: string, pk: string, sk: string): Promise<object | null> {
+  async getItem<T>(table: string, pk: string, sk: string): Promise<T | null> {
     const r = await this.db.get({
       TableName: table,
       Key: {
@@ -23,7 +23,7 @@ export class DynamoDBUtils {
         SK: sk
       }
     }).promise()
-    return r.Item ?? null;
+    return r.Item as T ?? null;
   }
 
   async putItem(table: string, item: {[key: string]: DocumentClient.AttributeValue}): Promise<void> {
@@ -33,18 +33,19 @@ export class DynamoDBUtils {
     }).promise()
   }
 
-  async query<T>(table: string, index: string | null, expression: string, pk: string, sk?: string, pages?: number, forward?: boolean, props?: {
+  async query<T>(table: string, index: string | null | undefined, expression: string, pk: string, sk?: string, pages: number = 1, forward: boolean = true, props?: {
     FilterExpression?: string,
     Limit?: number,
+    verbose?: boolean,
   }): Promise<[T[], number]> {
     const {FilterExpression, Limit, verbose} = props ?? {};
     const ans : DocumentClient.AttributeMap[] = [];
     let next: DocumentClient.Key | undefined;
     let i = 0
-    for (; i < pages; i++) {
+    for (; i < pages ?? 1; i++) {
       const params: DocumentClient.QueryInput = {
         TableName: table,
-        IndexName: index,
+        IndexName: index??undefined,
         ScanIndexForward: forward,
         KeyConditionExpression: expression,
         ExclusiveStartKey: next,

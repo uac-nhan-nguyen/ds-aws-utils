@@ -16,5 +16,8 @@
     "moduleResolution": "node",
     "baseUrl": ".",
     "skipLibCheck": true
-  }
+  },
+  "exclude": [
+    "dist"
+  ]
 }
