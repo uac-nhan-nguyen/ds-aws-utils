@@ -12,9 +12,20 @@ export const getCredentialsFromProfile = (profile: string): Credentials | undefi
   const lines = file.split('\n');
   for (let i = 0; i < lines.length; i++) {
     if (lines[i].startsWith(`[${profile}]`)) {
+      let accessKeyId, secretAccessKey;
+      for (let j = 1; j< 4; j++){
+        const [k,v] = lines[i + j].split('=');
+        if (k === 'aws_access_key_id'){
+          accessKeyId = v.trim()
+        }
+        else if (k === 'aws_secret_access_key') {
+          secretAccessKey = v.trim()
+        }
+      }
+
       return new AWS.Credentials({
-        accessKeyId: lines[i + 1].split('=')[1].trim(),
-        secretAccessKey: lines[i + 2].split('=')[1].trim(),
+        accessKeyId: accessKeyId,
+        secretAccessKey: secretAccessKey,
       })
     }
   }
