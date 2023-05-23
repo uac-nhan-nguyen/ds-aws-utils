@@ -1,6 +1,6 @@
 {
   "name": "ds-aws-utils",
-  "version": "0.1.2",
+  "version": "0.1.4",
   "description": "Simple aws utils",
   "main": "dist/index.js",
   "repository": "git@github.com:uac-nhan-nguyen/ds-aws-utils.git",
@@ -17,6 +17,6 @@
     "typescript": "^4.7.4"
   },
   "files": [
-    "dist/index.*"
+    "dist/*"
   ]
 }
