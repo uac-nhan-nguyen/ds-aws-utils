@@ -17,7 +17,6 @@ export class DynamoDBUtils {
     this.dynamoDB = new DynamoDB({
       region, credentials: credentials
     })
-
   }
 
   async getItem<T>(table: string, pk: string, sk: string): Promise<T | null> {

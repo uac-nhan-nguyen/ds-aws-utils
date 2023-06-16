@@ -16,4 +16,7 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
 Object.defineProperty(exports, "__esModule", { value: true });
 __exportStar(require("./profile"), exports);
 __exportStar(require("./dynamodb"), exports);
+__exportStar(require("./listAll"), exports);
+__exportStar(require("./cloud-formation"), exports);
+__exportStar(require("./queue"), exports);
 //# sourceMappingURL=index.js.map
