@@ -30,8 +30,8 @@ export class DynamoDBUtils {
     return r.Item as T ?? null;
   }
 
-  async getManyItems<T>(table: string, keys: {PK: string, SK: string}[]): Promise<(T|null)[]> {
-    const loader = new DataLoader<{PK: string, SK: string}, T | null>(async (keys) => {
+  async getManyItems<T>(table: string, keys: { PK: string, SK: string }[]): Promise<(T | null)[]> {
+    const loader = new DataLoader<{ PK: string, SK: string }, T | null>(async (keys) => {
       const r = await this.db.batchGet({
         ReturnConsumedCapacity: "TOTAL",
         RequestItems: {
@@ -75,6 +75,64 @@ export class DynamoDBUtils {
       TableName: table,
       Item: item,
     }).promise()
+  }
+
+  /**
+   * when index is undefined, key pair is PK and SK
+   * when index is gsik-index, key pair is GSIKPK and GSIKSK
+   * when index is gsi1-index, key pair is GSI1PK and GSI1SK
+   */
+  async queryWithCallback<T>(table: string,
+                             index: string | undefined,
+                             pkValue: string,
+                             skValue: string | undefined,
+                             callback: (items: T[], page: number) => Promise<void>,
+                             props?: {
+                               FilterExpression?: string,
+                               Limit?: number,
+                               verbose?: boolean,
+                               ScanIndexForward?: false,
+                             }): Promise<void> {
+    const {FilterExpression, Limit, verbose} = props ?? {};
+    let next: DocumentClient.Key | undefined = undefined;
+    let page = 0
+
+    const INDEX_PREFIX = index?.split('-')[0].toUpperCase();
+    const pkKey = INDEX_PREFIX ? `${INDEX_PREFIX}PK` : 'PK'
+    const skKey = INDEX_PREFIX ? `${INDEX_PREFIX}SK` : 'SK'
+
+    do {
+      const params: DocumentClient.QueryInput = {
+        TableName: table,
+        IndexName: index ?? undefined,
+        ScanIndexForward: props?.ScanIndexForward,
+        KeyConditionExpression: skValue ? `${pkKey}=:${pkKey} AND begins_with(${skKey},:${skKey})` : `${pkKey}=:${pkKey}`,
+        ExclusiveStartKey: next,
+        ExpressionAttributeValues: {
+          [`:${pkKey}`]: pkValue,
+          [`:${skKey}`]: skValue,
+        },
+        FilterExpression, Limit,
+      }
+      Object.entries(params).forEach(([k,v]) => {
+        if (v === undefined) delete params[k]
+      })
+
+      if (verbose) console.log('PARAMS', params)
+
+      await this.db.query(params).promise()
+        .then(async (r) => {
+          next = r.LastEvaluatedKey;
+          await callback(r.Items as T[] ?? [], page);
+        })
+        .catch(e => {
+          console.log('PARAMS', params)
+          throw e;
+        });
+
+      page++;
+    }
+    while (next != null)
   }
 
   async query<T>(table: string, index: string | null | undefined, expression: string, pk: string, sk?: string, pages: number = 1, forward: boolean = true, props?: {

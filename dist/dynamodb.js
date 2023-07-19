@@ -67,6 +67,44 @@ class DynamoDBUtils {
             Item: item,
         }).promise();
     }
+    async queryWithCallback(table, index, pkValue, skValue, callback, props) {
+        const { FilterExpression, Limit, verbose } = props ?? {};
+        let next = undefined;
+        let page = 0;
+        const INDEX_PREFIX = index?.split('-')[0].toUpperCase();
+        const pkKey = INDEX_PREFIX ? `${INDEX_PREFIX}PK` : 'PK';
+        const skKey = INDEX_PREFIX ? `${INDEX_PREFIX}SK` : 'SK';
+        do {
+            const params = {
+                TableName: table,
+                IndexName: index ?? undefined,
+                ScanIndexForward: props?.ScanIndexForward,
+                KeyConditionExpression: skValue ? `${pkKey}=:${pkKey} AND begins_with(${skKey},:${skKey})` : `${pkKey}=:${pkKey}`,
+                ExclusiveStartKey: next,
+                ExpressionAttributeValues: {
+                    [`:${pkKey}`]: pkValue,
+                    [`:${skKey}`]: skValue,
+                },
+                FilterExpression, Limit,
+            };
+            Object.entries(params).forEach(([k, v]) => {
+                if (v === undefined)
+                    delete params[k];
+            });
+            if (verbose)
+                console.log('PARAMS', params);
+            await this.db.query(params).promise()
+                .then(async (r) => {
+                next = r.LastEvaluatedKey;
+                await callback(r.Items ?? [], page);
+            })
+                .catch(e => {
+                console.log('PARAMS', params);
+                throw e;
+            });
+            page++;
+        } while (next != null);
+    }
     async query(table, index, expression, pk, sk, pages = 1, forward = true, props) {
         const { FilterExpression, Limit, verbose } = props ?? {};
         const ans = [];
