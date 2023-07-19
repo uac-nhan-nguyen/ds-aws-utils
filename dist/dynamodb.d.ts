@@ -15,16 +15,25 @@ export declare class DynamoDBUtils {
     putItem(table: string, item: {
         [key: string]: DocumentClient.AttributeValue;
     }): Promise<void>;
-    queryWithCallback<T>(table: string, index: string | undefined, pkValue: string, skValue: string | undefined, callback: (items: T[], page: number) => Promise<void>, props?: {
+    queryWithCallback<T>(table: string, index: string | undefined, pkValue: string, skValue: string | undefined, options: {
         FilterExpression?: string;
+        ProjectionExpression?: string;
         Limit?: number;
-        verbose?: boolean;
         ScanIndexForward?: false;
-    }): Promise<void>;
+        verbose?: boolean;
+        maxPages?: number;
+    }, callback: (items: T[], page: number) => Promise<void>): Promise<void>;
     query<T>(table: string, index: string | null | undefined, expression: string, pk: string, sk?: string, pages?: number, forward?: boolean, props?: {
         FilterExpression?: string;
         Limit?: number;
         verbose?: boolean;
     }): Promise<[T[], number]>;
+    queryFirstPage<T>(table: string, index: string | undefined, pkValue: string, skValue: string | undefined, props?: {
+        FilterExpression?: string;
+        ProjectionExpression?: string;
+        Limit?: number;
+        ScanIndexForward?: false;
+        verbose?: boolean;
+    }): Promise<T[]>;
     createBackup(table: string, backupName: string): Promise<DynamoDB.Types.CreateBackupOutput>;
 }

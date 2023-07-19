@@ -67,8 +67,7 @@ class DynamoDBUtils {
             Item: item,
         }).promise();
     }
-    async queryWithCallback(table, index, pkValue, skValue, callback, props) {
-        const { FilterExpression, Limit, verbose } = props ?? {};
+    async queryWithCallback(table, index, pkValue, skValue, options, callback) {
         let next = undefined;
         let page = 0;
         const INDEX_PREFIX = index?.split('-')[0].toUpperCase();
@@ -78,20 +77,22 @@ class DynamoDBUtils {
             const params = {
                 TableName: table,
                 IndexName: index ?? undefined,
-                ScanIndexForward: props?.ScanIndexForward,
+                ScanIndexForward: options.ScanIndexForward,
                 KeyConditionExpression: skValue ? `${pkKey}=:${pkKey} AND begins_with(${skKey},:${skKey})` : `${pkKey}=:${pkKey}`,
                 ExclusiveStartKey: next,
                 ExpressionAttributeValues: {
                     [`:${pkKey}`]: pkValue,
                     [`:${skKey}`]: skValue,
                 },
-                FilterExpression, Limit,
+                ProjectionExpression: options.ProjectionExpression,
+                FilterExpression: options.FilterExpression,
+                Limit: options.Limit,
             };
             Object.entries(params).forEach(([k, v]) => {
                 if (v === undefined)
                     delete params[k];
             });
-            if (verbose)
+            if (options.verbose)
                 console.log('PARAMS', params);
             await this.db.query(params).promise()
                 .then(async (r) => {
@@ -103,7 +104,7 @@ class DynamoDBUtils {
                 throw e;
             });
             page++;
-        } while (next != null);
+        } while (next != null && (!options.maxPages || page < options.maxPages));
     }
     async query(table, index, expression, pk, sk, pages = 1, forward = true, props) {
         const { FilterExpression, Limit, verbose } = props ?? {};
@@ -145,6 +146,42 @@ class DynamoDBUtils {
             }
         }
         return [ans, i];
+    }
+    async queryFirstPage(table, index, pkValue, skValue, props) {
+        let next = undefined;
+        const ans = [];
+        const INDEX_PREFIX = index?.split('-')[0].toUpperCase();
+        const pkKey = INDEX_PREFIX ? `${INDEX_PREFIX}PK` : 'PK';
+        const skKey = INDEX_PREFIX ? `${INDEX_PREFIX}SK` : 'SK';
+        const params = {
+            TableName: table,
+            IndexName: index ?? undefined,
+            ScanIndexForward: props?.ScanIndexForward,
+            KeyConditionExpression: skValue ? `${pkKey}=:${pkKey} AND begins_with(${skKey},:${skKey})` : `${pkKey}=:${pkKey}`,
+            ExclusiveStartKey: next,
+            ExpressionAttributeValues: {
+                [`:${pkKey}`]: pkValue,
+                [`:${skKey}`]: skValue,
+            },
+            ProjectionExpression: props?.ProjectionExpression,
+            FilterExpression: props?.FilterExpression,
+            Limit: props?.Limit,
+        };
+        Object.entries(params).forEach(([k, v]) => {
+            if (v === undefined)
+                delete params[k];
+        });
+        if (props?.verbose)
+            console.log('PARAMS', params);
+        await this.db.query(params).promise()
+            .then(async (r) => {
+            ans.push(...r.Items ?? []);
+        })
+            .catch(e => {
+            console.log('PARAMS', params);
+            throw e;
+        });
+        return ans;
     }
     async createBackup(table, backupName) {
         const r = await this.dynamoDB.createBackup({

@@ -78,6 +78,15 @@ export class DynamoDBUtils {
   }
 
   /**
+   * Example:
+   * await db.queryWithCallback(credfolioTable, 'gsi1-index', 'LEARNER', 'Expired',
+   *   {
+   *     ProjectionExpression: 'PK',
+   *   },
+   *   async (items, page) => {
+   *     console.log(page, items.length)
+   *   })
+   *
    * when index is undefined, key pair is PK and SK
    * when index is gsik-index, key pair is GSIKPK and GSIKSK
    * when index is gsi1-index, key pair is GSI1PK and GSI1SK
@@ -86,14 +95,16 @@ export class DynamoDBUtils {
                              index: string | undefined,
                              pkValue: string,
                              skValue: string | undefined,
-                             callback: (items: T[], page: number) => Promise<void>,
-                             props?: {
+                             options: {
                                FilterExpression?: string,
+                               ProjectionExpression?: string,
                                Limit?: number,
-                               verbose?: boolean,
                                ScanIndexForward?: false,
-                             }): Promise<void> {
-    const {FilterExpression, Limit, verbose} = props ?? {};
+                               verbose?: boolean,
+                               maxPages?: number,
+                             },
+                             callback: (items: T[], page: number) => Promise<void>, // return true if should continue
+                             ): Promise<void> {
     let next: DocumentClient.Key | undefined = undefined;
     let page = 0
 
@@ -105,20 +116,22 @@ export class DynamoDBUtils {
       const params: DocumentClient.QueryInput = {
         TableName: table,
         IndexName: index ?? undefined,
-        ScanIndexForward: props?.ScanIndexForward,
+        ScanIndexForward: options.ScanIndexForward,
         KeyConditionExpression: skValue ? `${pkKey}=:${pkKey} AND begins_with(${skKey},:${skKey})` : `${pkKey}=:${pkKey}`,
         ExclusiveStartKey: next,
         ExpressionAttributeValues: {
           [`:${pkKey}`]: pkValue,
           [`:${skKey}`]: skValue,
         },
-        FilterExpression, Limit,
+        ProjectionExpression: options.ProjectionExpression,
+        FilterExpression: options.FilterExpression,
+        Limit: options.Limit,
       }
-      Object.entries(params).forEach(([k,v]) => {
+      Object.entries(params).forEach(([k, v]) => {
         if (v === undefined) delete params[k]
       })
 
-      if (verbose) console.log('PARAMS', params)
+      if (options.verbose) console.log('PARAMS', params)
 
       await this.db.query(params).promise()
         .then(async (r) => {
@@ -132,7 +145,7 @@ export class DynamoDBUtils {
 
       page++;
     }
-    while (next != null)
+    while (next != null && (!options.maxPages || page < options.maxPages))
   }
 
   async query<T>(table: string, index: string | null | undefined, expression: string, pk: string, sk?: string, pages: number = 1, forward: boolean = true, props?: {
@@ -180,6 +193,60 @@ export class DynamoDBUtils {
 
     return [ans as T[], i];
   }
+
+  /**
+   * Shorted query method
+   */
+  async queryFirstPage<T>(table: string,
+                          index: string | undefined,
+                          pkValue: string,
+                          skValue: string | undefined,
+                          options?: {
+                            FilterExpression?: string,
+                            ProjectionExpression?: string,
+                            Limit?: number,
+                            ScanIndexForward?: false,
+                            verbose?: boolean,
+                          }): Promise<T[]> {
+    let next: DocumentClient.Key | undefined = undefined;
+    const ans: DocumentClient.AttributeMap[] = [];
+
+    const INDEX_PREFIX = index?.split('-')[0].toUpperCase();
+    const pkKey = INDEX_PREFIX ? `${INDEX_PREFIX}PK` : 'PK'
+    const skKey = INDEX_PREFIX ? `${INDEX_PREFIX}SK` : 'SK'
+
+    const params: DocumentClient.QueryInput = {
+      TableName: table,
+      IndexName: index ?? undefined,
+      ScanIndexForward: options?.ScanIndexForward,
+      KeyConditionExpression: skValue ? `${pkKey}=:${pkKey} AND begins_with(${skKey},:${skKey})` : `${pkKey}=:${pkKey}`,
+      ExclusiveStartKey: next,
+      ExpressionAttributeValues: {
+        [`:${pkKey}`]: pkValue,
+        [`:${skKey}`]: skValue,
+      },
+      ProjectionExpression: options?.ProjectionExpression,
+      FilterExpression: options?.FilterExpression,
+      Limit: options?.Limit,
+    }
+    Object.entries(params).forEach(([k, v]) => {
+      if (v === undefined) delete params[k]
+    })
+
+    if (options?.verbose) console.log('PARAMS', params)
+
+    await this.db.query(params).promise()
+      .then(async (r) => {
+        ans.push(...r.Items ?? [])
+      })
+      .catch(e => {
+        console.log('PARAMS', params)
+        throw e;
+      });
+
+    return ans as T[];
+  }
+
 
   async createBackup(table: string, backupName: string): Promise<DynamoDB.Types.CreateBackupOutput> {
     const r = await this.dynamoDB.createBackup({
