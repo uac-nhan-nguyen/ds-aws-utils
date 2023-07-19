@@ -16,10 +16,10 @@ jobs:
         with:
           registry-url: 'https://registry.npmjs.org'
           node-version: '16.x'
-          cache: 'npm'
-      - run: npm install
-      - run: npm run build
-      - run: npm ci
+          cache: 'yarn'
+      - run: yarn install
+      - run: yarn build
+#      - run: npm ci
       - run: npm publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
