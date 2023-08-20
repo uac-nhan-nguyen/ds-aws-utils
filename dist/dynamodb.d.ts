@@ -28,7 +28,7 @@ export declare class DynamoDBUtils {
         Limit?: number;
         verbose?: boolean;
     }): Promise<[T[], number]>;
-    queryFirstPage<T>(table: string, index: string | undefined, pkValue: string, skValue: string | undefined, props?: {
+    queryFirstPage<T>(table: string, index: string | undefined, pkValue: string, skValue: string | undefined, options?: {
         FilterExpression?: string;
         ProjectionExpression?: string;
         Limit?: number;

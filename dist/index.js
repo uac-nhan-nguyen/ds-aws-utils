@@ -19,4 +19,5 @@ __exportStar(require("./dynamodb"), exports);
 __exportStar(require("./listAll"), exports);
 __exportStar(require("./cloud-formation"), exports);
 __exportStar(require("./queue"), exports);
+__exportStar(require("./cognito"), exports);
 //# sourceMappingURL=index.js.map

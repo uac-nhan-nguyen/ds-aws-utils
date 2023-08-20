@@ -147,7 +147,7 @@ class DynamoDBUtils {
         }
         return [ans, i];
     }
-    async queryFirstPage(table, index, pkValue, skValue, props) {
+    async queryFirstPage(table, index, pkValue, skValue, options) {
         let next = undefined;
         const ans = [];
         const INDEX_PREFIX = index?.split('-')[0].toUpperCase();
@@ -156,22 +156,22 @@ class DynamoDBUtils {
         const params = {
             TableName: table,
             IndexName: index ?? undefined,
-            ScanIndexForward: props?.ScanIndexForward,
+            ScanIndexForward: options?.ScanIndexForward,
             KeyConditionExpression: skValue ? `${pkKey}=:${pkKey} AND begins_with(${skKey},:${skKey})` : `${pkKey}=:${pkKey}`,
             ExclusiveStartKey: next,
             ExpressionAttributeValues: {
                 [`:${pkKey}`]: pkValue,
                 [`:${skKey}`]: skValue,
             },
-            ProjectionExpression: props?.ProjectionExpression,
-            FilterExpression: props?.FilterExpression,
-            Limit: props?.Limit,
+            ProjectionExpression: options?.ProjectionExpression,
+            FilterExpression: options?.FilterExpression,
+            Limit: options?.Limit,
         };
         Object.entries(params).forEach(([k, v]) => {
             if (v === undefined)
                 delete params[k];
         });
-        if (props?.verbose)
+        if (options?.verbose)
             console.log('PARAMS', params);
         await this.db.query(params).promise()
             .then(async (r) => {
