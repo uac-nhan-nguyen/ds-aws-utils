@@ -20,4 +20,5 @@ __exportStar(require("./listAll"), exports);
 __exportStar(require("./cloud-formation"), exports);
 __exportStar(require("./queue"), exports);
 __exportStar(require("./cognito"), exports);
+__exportStar(require("./lambda"), exports);
 //# sourceMappingURL=index.js.map

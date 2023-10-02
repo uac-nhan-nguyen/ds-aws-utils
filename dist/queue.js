@@ -1,34 +1,40 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.queueAndFlat = void 0;
-async function queueAndFlat(limit, promises) {
+exports.queueAndFlat = exports.queue = void 0;
+async function queue(options, callbacks) {
+    const limit = options.limit ?? 1;
     let counter = 0;
     let index = 0;
     let complete = 0;
     return new Promise((resolve, reject) => {
-        const results = new Array(promises.length);
+        const results = new Array(callbacks.length);
         const next = () => {
             const i = index++;
-            if (i >= promises.length)
+            if (i >= callbacks.length)
                 throw `Invalid index ${i}`;
-            promises[i]()
+            callbacks[i]()
                 .then((ans) => {
                 results[i] = ans;
                 complete++;
-                if (complete < promises.length - limit + 1) {
+                if (complete < callbacks.length - limit + 1) {
                     next();
                 }
-                else if (complete === promises.length) {
-                    resolve(results.flat());
+                else if (complete === callbacks.length) {
+                    resolve(results);
                 }
             })
                 .catch(reject);
         };
-        while (counter < limit && index <= promises.length - 1) {
+        while (counter < limit && index <= callbacks.length - 1) {
             counter++;
             next();
         }
     });
+}
+exports.queue = queue;
+async function queueAndFlat(options, callbacks) {
+    const ans = await queue(options, callbacks);
+    return ans.flat();
 }
 exports.queueAndFlat = queueAndFlat;
 //# sourceMappingURL=queue.js.map

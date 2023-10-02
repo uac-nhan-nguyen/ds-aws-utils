@@ -14,7 +14,7 @@ const getCredentialsFromProfile = (profile) => {
     const lines = file.split('\n');
     for (let i = 0; i < lines.length; i++) {
         if (lines[i].startsWith(`[${profile}]`)) {
-            let accessKeyId, secretAccessKey;
+            let accessKeyId, secretAccessKey, sessionToken;
             for (let j = 1; j < 4; j++) {
                 const [k, v] = lines[i + j].split('=');
                 if (k === 'aws_access_key_id') {
@@ -23,10 +23,14 @@ const getCredentialsFromProfile = (profile) => {
                 else if (k === 'aws_secret_access_key') {
                     secretAccessKey = v.trim();
                 }
+                else if (k === 'session_token') {
+                    sessionToken = v.trim();
+                }
             }
             return new aws_sdk_1.default.Credentials({
                 accessKeyId: accessKeyId,
                 secretAccessKey: secretAccessKey,
+                sessionToken,
             });
         }
     }

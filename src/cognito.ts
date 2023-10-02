@@ -30,7 +30,7 @@ export class CognitoUtils {
     return ans;
   }
 
-  async listAllUsers(poolId: string): Promise<{
+  async listAllUsers(poolId: string): Promise<UserType & {
     sub: string,
     email?: string,
   }[]> {
@@ -44,9 +44,10 @@ export class CognitoUtils {
       users.push(...(userResponse.Users ?? []));
       token = userResponse.PaginationToken;
     } while (token)
-    return users.map((i) => {
+    return users.map((i: UserType) => {
       if (i.Username == null) throw Error('Missing Username attribute');
       return {
+        ...i,
         sub: i.Username,
         email: i.Attributes?.find((i) => i.Name === 'email')?.Value,
       }
