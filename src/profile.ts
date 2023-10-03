@@ -21,7 +21,7 @@ export const getCredentialsFromProfile = (profile: string): Credentials | undefi
         else if (k === 'aws_secret_access_key') {
           secretAccessKey = v.trim()
         }
-        else if (k === 'session_token') {
+        else if (k === 'aws_session_token') {
           sessionToken = v.trim()
         }
       }
