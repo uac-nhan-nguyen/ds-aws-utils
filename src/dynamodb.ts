@@ -1,21 +1,22 @@
-import {Credentials, DynamoDB} from "aws-sdk";
-import {DocumentClient} from 'aws-sdk/clients/dynamodb'
+import { DynamoDBDocument, QueryCommandInput } from "@aws-sdk/lib-dynamodb";
+import { AttributeValue, CreateBackupOutput, DynamoDB } from "@aws-sdk/client-dynamodb";
 import DataLoader from "dataloader";
 
 const isNotError = <T>(item: T | Error): item is T => !(item instanceof Error)
 
 
 export class DynamoDBUtils {
-  db: DocumentClient;
+  db: DynamoDBDocument;
 
   dynamoDB: DynamoDB;
 
-  constructor({region, credentials}: { region: string, credentials: Credentials }) {
-    this.db = new DynamoDB.DocumentClient({
+  constructor({region, credentials}: { region: string, credentials }) {
+    this.db = DynamoDBDocument.from(new DynamoDB({
       region, credentials: credentials
-    });
+    }));
     this.dynamoDB = new DynamoDB({
-      region, credentials: credentials
+      region,
+      credentials: credentials
     })
   }
 
@@ -26,7 +27,7 @@ export class DynamoDBUtils {
         PK: pk,
         SK: sk
       }
-    }).promise()
+    })
     return r.Item as T ?? null;
   }
 
@@ -39,7 +40,7 @@ export class DynamoDBUtils {
             Keys: [...keys]
           }
         }
-      }).promise()
+      })
       if (r.UnprocessedKeys?.[table]) {
         console.error("Keys", {keys});
         throw new Error('Does not expect to have unprocessed keys if avg size < 300kb')
@@ -70,11 +71,11 @@ export class DynamoDBUtils {
     return ans.filter(isNotError);
   }
 
-  async putItem(table: string, item: { [key: string]: DocumentClient.AttributeValue }): Promise<void> {
+  async putItem(table: string, item: { [key: string]: AttributeValue }): Promise<void> {
     const r = await this.db.put({
       TableName: table,
       Item: item,
-    }).promise()
+    })
   }
 
   /**
@@ -105,7 +106,7 @@ export class DynamoDBUtils {
                              },
                              callback: (items: T[], page: number) => Promise<void>, // return true if should continue
                              ): Promise<void> {
-    let next: DocumentClient.Key | undefined = undefined;
+    let next: Record<string, any> | undefined = undefined;
     let page = 0
 
     const INDEX_PREFIX = index?.split('-')[0].toUpperCase();
@@ -113,7 +114,7 @@ export class DynamoDBUtils {
     const skKey = INDEX_PREFIX ? `${INDEX_PREFIX}SK` : 'SK'
 
     do {
-      const params: DocumentClient.QueryInput = {
+      const params: QueryCommandInput = {
         TableName: table,
         IndexName: index ?? undefined,
         ScanIndexForward: options.ScanIndexForward,
@@ -133,7 +134,7 @@ export class DynamoDBUtils {
 
       if (options.verbose) console.log('PARAMS', params)
 
-      await this.db.query(params).promise()
+      await this.db.query(params)
         .then(async (r) => {
           next = r.LastEvaluatedKey;
           await callback(r.Items as T[] ?? [], page);
@@ -154,11 +155,11 @@ export class DynamoDBUtils {
     verbose?: boolean,
   }): Promise<[T[], number]> {
     const {FilterExpression, Limit, verbose} = props ?? {};
-    const ans: DocumentClient.AttributeMap[] = [];
-    let next: DocumentClient.Key | undefined;
+    const ans: Record<string, any>[] = [];
+    let next: Record<string, any> | undefined;
     let i = 0
     for (; i < pages ?? 1; i++) {
-      const params: DocumentClient.QueryInput = {
+      const params: QueryCommandInput = {
         TableName: table,
         IndexName: index ?? undefined,
         ScanIndexForward: forward,
@@ -183,8 +184,8 @@ export class DynamoDBUtils {
         FilterExpression, Limit,
       }
       if (verbose) console.log(params)
-      const r = await this.db.query(params).promise();
-      ans.push(...r.Items ?? []);
+      const r = await this.db.query(params)
+      ans.push(...(r.Items ?? []));
       next = r.LastEvaluatedKey;
       if (!next) {
         return [ans as T[], i + 1];
@@ -208,14 +209,14 @@ export class DynamoDBUtils {
                             ScanIndexForward?: false,
                             verbose?: boolean,
                           }): Promise<T[]> {
-    let next: DocumentClient.Key | undefined = undefined;
-    const ans: DocumentClient.AttributeMap[] = [];
+    let next: Record<string, any> | undefined = undefined;
+    const ans: Record<string, any>[] = [];
 
     const INDEX_PREFIX = index?.split('-')[0].toUpperCase();
     const pkKey = INDEX_PREFIX ? `${INDEX_PREFIX}PK` : 'PK'
     const skKey = INDEX_PREFIX ? `${INDEX_PREFIX}SK` : 'SK'
 
-    const params: DocumentClient.QueryInput = {
+    const params: QueryCommandInput = {
       TableName: table,
       IndexName: index ?? undefined,
       ScanIndexForward: options?.ScanIndexForward,
@@ -235,9 +236,9 @@ export class DynamoDBUtils {
 
     if (options?.verbose) console.log('PARAMS', params)
 
-    await this.db.query(params).promise()
+    await this.db.query(params)
       .then(async (r) => {
-        ans.push(...r.Items ?? [])
+        ans.push(...(r.Items ?? []))
       })
       .catch(e => {
         console.log('PARAMS', params)
@@ -248,11 +249,11 @@ export class DynamoDBUtils {
   }
 
 
-  async createBackup(table: string, backupName: string): Promise<DynamoDB.Types.CreateBackupOutput> {
+  async createBackup(table: string, backupName: string): Promise<CreateBackupOutput> {
     const r = await this.dynamoDB.createBackup({
       TableName: table,
       BackupName: backupName,
-    }).promise();
+    })
     return r;
     // const status = await this.dynamoDB.describeBackup({
     //   BackupArn: r.BackupDetails.BackupArn,

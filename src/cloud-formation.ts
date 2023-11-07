@@ -1,25 +1,26 @@
-import {CloudFormation, Credentials} from "aws-sdk";
+import { CloudFormation, ListStackResourcesCommandInput, ListStacksCommandInput } from "@aws-sdk/client-cloudformation";
 import {listAll} from "./listAll";
 
 export class CloudFormationUtils {
   cloudFormation: CloudFormation;
 
-  constructor({region, credentials}: { region: string, credentials: Credentials }) {
+  constructor({region, credentials}: { region: string, credentials }) {
     this.cloudFormation = new CloudFormation({
-      region, credentials: credentials
+      region,
+      credentials: credentials
     });
   }
 
-  async listStacks(params: CloudFormation.Types.ListStacksInput) {
+  async listStacks(params: ListStacksCommandInput) {
     return listAll(
-      (next) => this.cloudFormation.listStacks({...params, NextToken: next}).promise(),
+      (next) => this.cloudFormation.listStacks({...params, NextToken: next}),
       (r) => ({NextToken: r.NextToken, Items: r.StackSummaries})
     )
   }
 
-  async listStackResources(params: CloudFormation.Types.ListStackResourcesInput) {
+  async listStackResources(params: ListStackResourcesCommandInput) {
     return listAll(
-      (next) => this.cloudFormation.listStackResources({...params, NextToken: next}).promise(),
+      (next) => this.cloudFormation.listStackResources({...params, NextToken: next}),
       (r) => ({NextToken: r.NextToken, Items: r.StackResourceSummaries})
     )
   }

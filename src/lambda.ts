@@ -1,4 +1,7 @@
-import {CloudFormation, CloudWatch, CloudWatchLogs, Credentials, Lambda} from "aws-sdk";
+import { CloudFormation, StackResourceSummary, StackSummary } from "@aws-sdk/client-cloudformation";
+import { CloudWatch } from "@aws-sdk/client-cloudwatch";
+import { CloudWatchLogs, FilterLogEventsRequest, FilteredLogEvent } from "@aws-sdk/client-cloudwatch-logs";
+import { Lambda } from "@aws-sdk/client-lambda";
 
 export class LambdaUtils {
   cf: CloudFormation
@@ -6,29 +9,41 @@ export class LambdaUtils {
   logs: CloudWatchLogs
   cw: CloudWatch
 
-  constructor({region, credentials}: { region: string, credentials: Credentials }) {
-    this.cf = new CloudFormation({region, credentials})
-    this.lambda = new Lambda({region, credentials})
-    this.cw = new CloudWatch({region, credentials})
-    this.logs = new CloudWatchLogs({region, credentials})
+  constructor({region, credentials}: { region: string, credentials }) {
+    this.cf = new CloudFormation({
+      region,
+      credentials
+    })
+    this.lambda = new Lambda({
+      region,
+      credentials
+    })
+    this.cw = new CloudWatch({
+      region,
+      credentials
+    })
+    this.logs = new CloudWatchLogs({
+      region,
+      credentials
+    })
   }
 
-  async listAllStacks(): Promise<CloudFormation.StackSummary[]> {
+  async listAllStacks(): Promise<StackSummary[]> {
     const ans = await iterateAllToken(async (token) => {
       const ans = await this.cf.listStacks({
         NextToken: token
-      }).promise()
+      })
       return {items: ans.StackSummaries ?? [], next: ans.NextToken};
     })
     return ans;
   }
 
-  async listAllResources(stackName: string): Promise<CloudFormation.StackResourceSummary[]> {
+  async listAllResources(stackName: string): Promise<StackResourceSummary[]> {
     const ans = await iterateAllToken(async (token) => {
       const ans = await this.cf.listStackResources({
         StackName: stackName,
         NextToken: token
-      }).promise()
+      })
       return {items: ans.StackResourceSummaries ?? [], next: ans.NextToken};
     })
 
@@ -39,8 +54,8 @@ export class LambdaUtils {
 
   }
 
-  async filterLogEvents(props: CloudWatchLogs.Types.FilterLogEventsRequest): Promise<CloudWatchLogs.FilteredLogEvent[]> {
-    const logs = await this.logs.filterLogEvents(props).promise()
+  async filterLogEvents(props: FilterLogEventsRequest): Promise<FilteredLogEvent[]> {
+    const logs = await this.logs.filterLogEvents(props)
       .catch((e) => {
         return null
       })

@@ -1,5 +1,4 @@
-import {CognitoIdentityServiceProvider, Credentials} from "aws-sdk";
-import {UserPoolDescriptionType, UserType} from "aws-sdk/clients/cognitoidentityserviceprovider";
+import { CognitoIdentityProvider, UserPoolDescriptionType, UserType } from "@aws-sdk/client-cognito-identity-provider";
 
 /**
  * Usage:
@@ -14,14 +13,17 @@ import {UserPoolDescriptionType, UserType} from "aws-sdk/clients/cognitoidentity
  * ```
  */
 export class CognitoUtils {
-  cognito: CognitoIdentityServiceProvider;
+  cognito: CognitoIdentityProvider;
 
-  constructor({region, credentials}: { region: string, credentials: Credentials }) {
-    this.cognito = new CognitoIdentityServiceProvider({region, credentials})
+  constructor({region, credentials}: { region: string, credentials }) {
+    this.cognito = new CognitoIdentityProvider({
+      region,
+      credentials
+    })
   }
 
   async findPoolId(poolName: string): Promise<UserPoolDescriptionType> {
-    const pools = await this.cognito.listUserPools({MaxResults: 50}).promise()
+    const pools = await this.cognito.listUserPools({MaxResults: 50})
     const ans = pools.UserPools?.find((i) => i.Name === poolName);
 
     if (ans == null) {
@@ -40,7 +42,7 @@ export class CognitoUtils {
       const userResponse = await this.cognito.listUsers({
         UserPoolId: poolId,
         PaginationToken: token
-      }).promise()
+      })
       users.push(...(userResponse.Users ?? []));
       token = userResponse.PaginationToken;
     } while (token)

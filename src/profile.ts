@@ -1,37 +1,20 @@
-import AWS, {Credentials} from 'aws-sdk'
-import fs from "fs";
-import os from "os";
+import { fromIni } from "@aws-sdk/credential-providers";
+import { AwsCredentialIdentity } from "@smithy/types";
 
 /**
  * Returns undefined for aws client to use default profile
  */
-export const getCredentialsFromProfile = (profile: string): Credentials | undefined => {
+export const getCredentialsFromProfile = async (profile: string) : Promise<AwsCredentialIdentity | undefined> => {
   if (profile == null) return undefined;
-
-  const file = Buffer.from(fs.readFileSync(`${os.homedir()}/.aws/credentials`)).toString('utf-8');
-  const lines = file.split('\n');
-  for (let i = 0; i < lines.length; i++) {
-    if (lines[i].startsWith(`[${profile}]`)) {
-      let accessKeyId, secretAccessKey, sessionToken;
-      for (let j = 1; j< 4; j++){
-        const [k,v] = lines[i + j].split('=');
-        if (k === 'aws_access_key_id'){
-          accessKeyId = v.trim()
-        }
-        else if (k === 'aws_secret_access_key') {
-          secretAccessKey = v.trim()
-        }
-        else if (k === 'aws_session_token') {
-          sessionToken = v.trim()
-        }
-      }
-
-      return new AWS.Credentials({
-        accessKeyId: accessKeyId,
-        secretAccessKey: secretAccessKey,
-        sessionToken,
-      })
-    }
+  if (process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY) {
+    // prioritize loading credentials from env var
+    return {
+      accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+      sessionToken: process.env.AWS_SESSION_TOKEN,
+    };
+  } else {
+    const credentials = await fromIni()();
+    return credentials;
   }
-  throw `Profile ${profile} not found`
-}
+};
