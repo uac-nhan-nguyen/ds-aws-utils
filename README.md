@@ -1,5 +1,9 @@
 # ds-aws-utils package
 
+## How to Publish
+
+Push tag `publish/*`
+
 ## dynamodb
 
 ### Type check methods (for single table pattern)
